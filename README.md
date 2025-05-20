@@ -1,3 +1,3 @@
 # Nutrition_Analyzer
 
-A model which works as a nutrition analyzer system providing dietary insights and personalized suggestions based on age.
+This Machine Learning-based Nutrition Analyzer helps users evaluate the nutritional content of the food they consume. By analyzing input food items, the application estimates key nutritional metrics such as protein, fat, carbohydrates and calories, and visually presents this information using pie charts.
