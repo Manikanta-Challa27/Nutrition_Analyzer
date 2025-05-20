@@ -1,0 +1,87 @@
+# nutrition_ml.py
+
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load and prepare data
+def load_and_train_model(file_path="nutrition.xlsx"):
+    df = pd.read_excel(file_path)
+    nutrient_cols = [col for col in df.columns if col not in ['Unnamed: 0', 'name', 'serving_size', 'calories']]
+    
+    def clean_value(val):
+        try:
+            if isinstance(val, str):
+                return float(val.lower().replace("mg", "")
+                                      .replace("g", "")
+                                      .replace("mcg", "")
+                                      .replace("µg", "")
+                                      .replace("kcal", "")
+                                      .strip())
+            return float(val)
+        except:
+            return np.nan
+
+    for col in nutrient_cols + ['calories']:
+        df[col] = df[col].apply(clean_value)
+
+    df.dropna(subset=['calories', 'name'] + nutrient_cols, inplace=True)
+    X = df[nutrient_cols]
+    y = df['calories']
+
+    model = RandomForestRegressor(random_state=42)
+    model.fit(X, y)
+
+    return model, df, nutrient_cols
+
+# Age-based recommendations
+def get_recommendations(age, nutrient, value):
+    guidelines = {
+        'protein': (50, 60) if age >= 19 else (40, 50),
+        'total_fat': (60, 80),
+        'carbohydrate': (225, 325),
+        'fiber': (25, 30),
+        'sugars': (0, 50),
+        'sodium': (0, 2300)
+    }
+    low, high = guidelines.get(nutrient, (0, float('inf')))
+    if value < low:
+        return f"⬆️ Increase {nutrient}"
+    elif value > high:
+        return f"⬇️ Reduce {nutrient}"
+    return "✅ Balanced"
+
+# Nutrient analyzer function
+def analyze_user_input(age, food_list, model, df):
+    summary_nutrients = ['calories', 'protein', 'total_fat', 'carbohydrate', 'fiber', 'sugars', 'sodium']
+    total_summary = {nut: 0.0 for nut in summary_nutrients}
+    food_details = []
+
+    for food in food_list:
+        match = df[df['name'].str.lower().str.contains(food.strip().lower())]
+        if not match.empty:
+            row = match.iloc[0]
+            food_info = {'name': row['name'], 'found': True, 'nutrients': {}, 'suggestions': {}}
+            for nut in summary_nutrients:
+                val = row.get(nut, 0)
+                if pd.notna(val):
+                    food_info['nutrients'][nut] = val
+                    food_info['suggestions'][nut] = get_recommendations(age, nut, val)
+                    total_summary[nut] += val
+            food_details.append(food_info)
+        else:
+            food_details.append({'name': food, 'found': False})
+    return total_summary, food_details
+
+# Pie chart generator
+def generate_pie_chart(macros):
+    plt.figure(figsize=(6, 6))
+    labels = list(macros.keys())
+    sizes = list(macros.values())
+    colors = ['#2a9d8f', '#f4a261', '#e76f51']
+    plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors)
+    plt.title('Macronutrient Distribution')
+    plt.tight_layout()
+    plt.savefig("pie_chart.png")
+    return "pie_chart.png"

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nutrition Analyzer</title>
+</head>
+<body>
+    <h1>Nutrition Analyzer</h1>
+
+    <label for="age">Enter your age:</label>
+    <input type="number" id="age" required><br><br>
+
+    <label for="food">Enter food items (comma separated):</label>
+    <input type="text" id="food" required><br><br>
+
+    <button onclick="submitData()">Submit</button>
+
+    <div id="result" style="display: none;">
+        <h2>Results:</h2>
+        <div id="totalCalories"></div>
+        <div id="totalNutrients"></div>
+    </div>
+
+    <div id="error" style="color: red; display: none;">
+        <p>An error occurred while fetching data. Please try again later.</p>
+    </div>
+
+    <script>
+        async function submitData() {
+            const age = document.getElementById("age").value;
+            const food = document.getElementById("food").value.split(',');
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        age: age,
+                        food_items: food
+                    })
+                });
+
+                // If response is not ok, throw an error
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+
+                const data = await response.json();
+
+                // Display the results
+                document.getElementById("result").style.display = "block";
+                document.getElementById("totalCalories").innerText = `Total Calories: ${data.total_calories} kcal`;
+                document.getElementById("totalNutrients").innerText = `Nutrients: ${JSON.stringify(data.total_nutrients)}`;
+                document.getElementById("error").style.display = "none";
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById("error").style.display = "block";
+                document.getElementById("result").style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
